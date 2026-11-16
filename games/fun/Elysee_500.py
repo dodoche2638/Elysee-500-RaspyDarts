@@ -14,7 +14,7 @@ LOGO = 'Elysee_500.png'
 NB_DARTS = 3
 HEADERS = ['Terr.']
 GAME_RECORDS = {}
-VERSION = '3.7'
+VERSION = '3.8'
 NOMS = ['Nathalie Arthaud', 'François Asselineau', 'Gabriel Attal', 'Delphine Batho', 'Olivier Becht', 'Sébastien Bonnal', 'Karim Bouamrane', 'Juan Branco', 'Mélody Delmur', 'Emmanuel Dubuisson', 'Nicolas Dupont-Aignan', 'Sylvain Durif', 'Clara Egger', 'Raphaël Glucksmann', 'Philippe Herlin', 'Anasse Kazib', 'Selma Labib', 'Francis Lalanne', 'Marine Le Pen', 'Jean-François Legendre', 'David Lisnard', 'Mira Markovic', 'Benoît Mathieu', 'Jean-Luc Mélenchon', 'Antoine Mikolajczak', 'Manolo Mlekuz', 'Édouard Philippe', 'Florian Philippot', 'Gilles Platret', 'Natacha Polony', 'Bruno Retailleau', 'Rémi Revillon d’Apreval', 'Teddy Riner', 'Erwan Rohou', 'Fabien Roussel', 'François Ruffin', 'David Saforcada', 'Marine Tondelier', 'Éric Zemmour']
 PALETTE = [(69,140,212),(229,102,112),(80,184,158),(229,166,83),(153,109,208),(213,125,181),(123,175,80),(98,117,202)]
 
@@ -68,8 +68,8 @@ class Game(cgame.Game):
         self.proprietaires = [None] * 9
         self.cache_images = {}
         self.cadre = None
-        # Pas d’animation de coup ni d’envoi des impacts au DMD.
-        self.show_dmd = False
+        # Rétablir le DMD standard du moteur ; aucune vidéo spéciale de coup.
+        self.show_dmd = True
 
     def image(self, nom, taille, couleur=None):
         key = (nom, taille, couleur)
