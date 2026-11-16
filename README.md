@@ -32,11 +32,31 @@ Chaque participant lance trois fléchettes par tour.
 
 ### Conquête
 
-Trois numéros sont éclairés en bleu, blanc et rouge pour chaque manche. Sur ces numéros : simple = 1 point, double = 2, triple = 3. Pour chaque numéro, le meilleur score unique gagne un territoire ; une égalité laisse le territoire indécis.
+Un territoire est une récompense à gagner sur **un numéro éclairé**.
 
-Après trois manches, les deux meilleurs passent en finale. Classement des qualifications : territoires, points cumulés, puis ordre d’inscription.
+Exemple : la manche propose **12 en bleu, 8 en blanc et 20 en rouge**. Chaque joueur lance **trois fléchettes au total**, à répartir comme il veut entre ces numéros.
 
-En finale libre, on compare les points sur les trois numéros. Avec finition imposée, chaque touche conforme vaut un point. Les deux finalistes terminent leurs trois fléchettes. Égalité : nouvelle volée complète, scores de finale remis à zéro.
+| Touche | Points sur le territoire correspondant |
+|---|---:|
+| Simple du numéro éclairé | 1 |
+| Double du numéro éclairé | 2 |
+| Triple du numéro éclairé | 3 |
+| Autre numéro, bull ou raté | 0 |
+
+Les touches sur un même numéro s’additionnent. **Quand tous les joueurs ont terminé**, le meilleur score sur chaque numéro gagne le territoire correspondant. En cas d’égalité en tête, personne ne gagne ce territoire : il reste gris. Un joueur peut gagner plusieurs territoires dans la même manche.
+
+**Exemple sur le 12 :** un double et un simple donnent 3 points. Si un adversaire fait un triple, il a aussi 3 points : à égalité en tête, le territoire reste indécis.
+
+#### Comprendre l’écran
+
+- **Les trois grands numéros** : où viser pendant cette manche.
+- **Les points sous chaque numéro** : les points du joueur actif sur ce territoire.
+- **« Terr. »** : le nombre de territoires gagnés.
+- **La carte** : les territoires déjà attribués aux manches précédentes, dans la couleur de leur gagnant. Le bleu, blanc et rouge des cibles ne désignent pas les propriétaires.
+
+Il y a **3 territoires à gagner par manche**, donc **9 au maximum sur 3 manches**. Les deux joueurs ayant le plus de territoires vont en finale. À égalité de territoires, les points cumulés départagent ; si cette égalité persiste, l’ordre d’inscription tranche.
+
+En finale libre, on compare les points sur trois nouveaux numéros. Avec finition imposée, chaque touche conforme vaut un point. Les deux finalistes terminent leurs trois fléchettes. À égalité, nouvelle volée complète, scores de finale remis à zéro.
 
 ### Course aux 500 parrainages
 
