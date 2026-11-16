@@ -1,12 +1,12 @@
 # Élysée 500 pour RaspyDarts
 
-Créateur : **dodoche2638**. Version 3.7, conçue pour RaspyDarts 4.5.1.
+Créateur : **dodoche2638**. Version 3.8, conçue pour RaspyDarts 4.5.1.
 
 Jeu de fléchettes pour **2 à 39 participants**, avec 39 personnages, un décor de l’Élysée, une carte et une intro animée de 25 secondes sur La Marseillaise.
 
 ## Télécharger et installer
 
-Télécharger [le paquet complet](Elysee_500_RaspyDarts.zip), puis le décompresser sur le PC. Quitter RaspyDarts avant les transferts.
+Télécharger [le paquet de ressources 3.7](Elysee_500_RaspyDarts.zip), puis le décompresser sur le PC. Remplacer ensuite son module par le [fichier Python 3.8](games/fun/Elysee_500.py) de ce dépôt (bouton Raw puis enregistrer sous `Elysee_500.py`). Le ZIP ne contient pas encore ce correctif. Quitter RaspyDarts avant les transferts.
 
 - `games/fun/Elysee_500.py` : module du jeu, à placer à côté de Castle.py.
 - `images/logos_menu/Elysee_500.png` : logo du menu Fun.
@@ -55,7 +55,7 @@ Avec finition imposée, chaque fléchette qui atteint ou dépasse 500 doit respe
 
 Si le menu général limite le nombre de joueurs, inscrire deux sièges relais, puis régler `effectif` sur le nombre réel de participants. Suivre le nom affiché par le jeu. Les statistiques génériques de la borne ne connaissent que les sièges relais.
 
-Les vidéos de coups spéciaux du thème et les envois d’impacts au DMD sont désactivés pour ce jeu. L’intro est conservée. Les LED de cible restent utilisées.
+Le DMD standard de RaspyDarts est réactivé en 3.8 (`show_dmd = True`). Les vidéos de coups spéciaux du thème restent désactivées pour ce jeu. L’intro est conservée. Les LED de cible restent utilisées.
 
 ## Diagnostic
 
@@ -63,8 +63,12 @@ Les exceptions du module sont enregistrées dans `logs/Elysee_500_erreur.log` (c
 
 Un affichage « 0 - 0 joueurs » indique une déclaration manquante dans `NbOfPlayersPerGame`. Un échec FileZilla mentionnant « restarting at file position » indique une reprise à désactiver : renvoyer le fichier en choisissant Remplacer.
 
+## Limite du mode relais
+
+Le vrai gagnant est annoncé par le jeu, mais la fin en relais utilise encore le code 2 et ne transmet pas ce gagnant aux statistiques natives. Une adaptation du moteur est nécessaire pour gérer tous les participants réels ; ce point reste ouvert.
+
 ## Validation
 
-Démarrage confirmé sur la borne de développement après correction des transferts. Tests locaux avec la classe de base fournie : initialisation, règles de fin de tour et égalités. Compatibilité à vérifier pour les autres versions de RaspyDarts.
+La version précédente démarrait sur la borne après correction des transferts. Le correctif DMD 3.8 reste à tester sur la borne ; aucun test exécuté pour cette modification. Tests locaux avec la classe de base fournie : initialisation, règles de fin de tour et égalités. Compatibilité à vérifier pour les autres versions de RaspyDarts.
 
 Ce dépôt contient un jeu additionnel ; RaspyDarts doit être installé séparément. Les droits des composants et ressources tiers restent ceux de leurs titulaires respectifs.
