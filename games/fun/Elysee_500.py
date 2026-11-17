@@ -5,8 +5,8 @@ from types import SimpleNamespace
 import pygame
 from include import cgame, cplayer
 
-OPTIONS = {'theme': 'default', 'effectif': 0, 'aleatoire': True, 'premier_a_500': False, 'finition': 0}
-OPTION_CHOICES = {'finition': [(0, 'Libre'), (1, 'Triple'), (2, 'Double (1 à 20)'), (3, 'Simple bull (25)'), (4, 'Double bull (50)')],
+OPTIONS = {'theme': 'default', 'effectif': 0, 'aleatoire': True, 'premier_a_500': 'conquete', 'finition': 0, 'nb_manches': 5}
+OPTION_CHOICES = {'premier_a_500': [('conquete', 'Conquête de territoires'), ('course500', 'Course aux 500 parrainages')], 'nb_manches': [(3, '3 manches'), (5, '5 manches'), (7, '7 manches')], 'finition': [(0, 'Libre'), (1, 'Triple'), (2, 'Double (1 à 20)'), (3, 'Simple bull (25)'), (4, 'Double bull (50)')],
                   'effectif': [(0, 'Joueurs inscrits au menu')] + [(i, str(i) + ' participants en relais') for i in range(2, 40)]}
 FINITIONS = ('Libre', 'Triple', 'Double', 'Simple bull (25)', 'Double bull (50)')
 CIBLES_FIN = ((), tuple(f'T{i}' for i in range(1,21)), tuple(f'D{i}' for i in range(1,21)), ('SB',), ('DB',))
@@ -14,7 +14,7 @@ LOGO = 'Elysee_500.png'
 NB_DARTS = 3
 HEADERS = ['Terr.']
 GAME_RECORDS = {}
-VERSION = '3.8'
+VERSION = '3.9'
 NOMS = ['Nathalie Arthaud', 'François Asselineau', 'Gabriel Attal', 'Delphine Batho', 'Olivier Becht', 'Sébastien Bonnal', 'Karim Bouamrane', 'Juan Branco', 'Mélody Delmur', 'Emmanuel Dubuisson', 'Nicolas Dupont-Aignan', 'Sylvain Durif', 'Clara Egger', 'Raphaël Glucksmann', 'Philippe Herlin', 'Anasse Kazib', 'Selma Labib', 'Francis Lalanne', 'Marine Le Pen', 'Jean-François Legendre', 'David Lisnard', 'Mira Markovic', 'Benoît Mathieu', 'Jean-Luc Mélenchon', 'Antoine Mikolajczak', 'Manolo Mlekuz', 'Édouard Philippe', 'Florian Philippot', 'Gilles Platret', 'Natacha Polony', 'Bruno Retailleau', 'Rémi Revillon d’Apreval', 'Teddy Riner', 'Erwan Rohou', 'Fabien Roussel', 'François Ruffin', 'David Saforcada', 'Marine Tondelier', 'Éric Zemmour']
 PALETTE = [(69,140,212),(229,102,112),(80,184,158),(229,166,83),(153,109,208),(213,125,181),(123,175,80),(98,117,202)]
 
@@ -36,7 +36,9 @@ class Game(cgame.Game):
         self.rpi = rpi
         self.nb_players = nb_players
         self.nb_darts = 3
-        self.max_round = 4
+        manches = int(options.get('nb_manches', 5))
+        self.nb_manches = manches if manches in (3, 5, 7) else 5
+        self.max_round = self.nb_manches + 1
         self.logo = LOGO
         self.headers = HEADERS
         self.game_records = {}
@@ -51,7 +53,7 @@ class Game(cgame.Game):
         self.dernier_actif = 0
         if self.relais:
             self.max_round = (total*3 + 2 + nb_players-1)//nb_players
-        self.course = str(options.get('premier_a_500', False)).lower() in ('true', '1', 'oui')
+        self.course = str(options.get('premier_a_500', False)).lower() in ('true', '1', 'oui', 'course500')
         choix = str(options.get('finition', 0))
         self.finition = int(choix) if choix in ('1','2','3','4') else 0
         # Les égalités peuvent imposer plusieurs tours de finale.
@@ -65,7 +67,11 @@ class Game(cgame.Game):
         self.finalistes = []
         self.bilan = ''
         self.termine = False
-        self.proprietaires = [None] * 9
+        self.proprietaires = [None] * (3 * self.nb_manches)
+        self.barrage = []
+        self.qualifies = []
+        self.places_barrage = 0
+        self.resultat_archive = None
         self.cache_images = {}
         self.cadre = None
         # Rétablir le DMD standard du moteur ; aucune vidéo spéciale de coup.
@@ -83,10 +89,22 @@ class Game(cgame.Game):
 
     def carte(self, screen):
         w,h = screen.get_size()
-        taille = (int(w*.23), int(h*.32))
+        groupes = (len(self.proprietaires) + 8) // 9
+        largeur = max(1, int(w * .23 / groupes))
+        hauteur = min(int(h * .27), int(largeur * 144 / 156))
+        taille = (largeur, hauteur)
         for k, proprio in enumerate(self.proprietaires):
-            couleur = PALETTE[proprio] if proprio is not None else (90+k%3*10,104+k%3*9,123+k%3*8)
-            screen.blit(self.image('zone'+str(k), taille, couleur), (int(w*.025),int(h*.29)))
+            couleur = PALETTE[proprio] if proprio is not None else (90, 104, 123)
+            screen.blit(self.image('zone' + str(k % 9), taille, couleur),
+                        (int(w * .025) + (k // 9) * largeur, int(h * .36)))
+        font = pygame.font.Font(None, max(12, int(h * .026)))
+        for groupe in range(groupes):
+            debut = 3 * groupe + 1
+            fin = min(self.nb_manches, debut + 2)
+            texte = f'M. {debut}' if debut == fin else f'M. {debut}-{fin}'
+            surf = font.render(texte, True, (246, 240, 223))
+            screen.blit(surf, (int(w * .025) + groupe * largeur,
+                              int(h * .36) + hauteur + 4))
 
     def play_intro(self):
         return None, self.play_intro_only_video()
@@ -101,9 +119,11 @@ class Game(cgame.Game):
             if not getattr(player, 'elysee_nomme', False):
                 player.name = f'{player.name} · {NOMS[self.personnages[actual_player]]}'
                 player.elysee_nomme = True
+        if self.barrage and actual_player not in self.barrage:
+            return 4
         if actual_round != self.tour:
             self.tour = actual_round
-            self.secteurs = random.sample(range(1, 21), 3)
+            self.secteurs = random.sample(range(1, 21), 1 if self.barrage else 3)
             self.points = [[0, 0, 0] for _ in players]
         if self.course and actual_player not in self.course_joueurs:
             return 4
@@ -142,6 +162,10 @@ class Game(cgame.Game):
             self.rpi.set_target_leds('')
             self.display.message([self.bilan], 2500, None, 'middle', 'big')
             return 3
+        if self.barrage:
+            if joueur == self.barrage[-1]:
+                self.resoudre_barrage()
+            return 1
         if self.finalistes:
             if joueur != max(self.finalistes):
                 return 1
@@ -176,34 +200,92 @@ class Game(cgame.Game):
                 acquis.append(f'{numero} : {nom}')
             self.bilan = '   /   '.join(acquis)
             self.display.message(acquis, 1800, None, 'middle', 'big')
-            if self.tour == 3:
-                self.finalistes = sorted(range(len(players)), key=lambda i:
-                    (self.territoires[i], self.cumul[i]), reverse=True)[:2]
+            if self.tour == self.nb_manches:
+                self.preparer_finale()
         return 1
 
-    def cloturer(self, joueurs_borne, index_borne):
-        if not self.relais:
-            return self.fin_volee(joueurs_borne, index_borne)
-        code = self.fin_volee(self.participants, self.actif)
-        if code == 3:
-            # Le moteur ne connaît que les sièges relais ; le jeu annonce le vrai gagnant.
-            self.winner = -1
-            return 2
-        ordre = sorted(self.finalistes) if self.finalistes and self.manche >= 4 else list(range(len(self.participants)))
+    def ordre_actuel(self):
         if self.course:
-            ordre = self.course_joueurs
-            # Après une égalité, l'ancien dernier peut être éliminé du départage.
-            if self.actif not in ordre:
+            return list(self.course_joueurs)
+        return sorted(self.barrage or self.finalistes or range(len(self.participants)))
+
+    def preparer_finale(self):
+        ordre = sorted(range(len(self.territoires)), key=lambda i: -self.territoires[i])
+        seuil = self.territoires[ordre[1]]
+        self.qualifies = [i for i in ordre if self.territoires[i] > seuil]
+        egaux = [i for i in ordre if self.territoires[i] == seuil]
+        places = 2 - len(self.qualifies)
+        if len(egaux) == places:
+            self.finalistes = sorted(self.qualifies + egaux)
+        else:
+            self.barrage = sorted(egaux)
+            self.places_barrage = places
+            self.bilan = 'Barrage : 3 fléchettes chacun sur un même numéro'
+
+    def resoudre_barrage(self):
+        ordre = sorted(self.barrage, key=lambda i: -sum(self.points[i]))
+        seuil = sum(self.points[ordre[self.places_barrage - 1]])
+        acquis = [i for i in ordre if sum(self.points[i]) > seuil]
+        egaux = [i for i in ordre if sum(self.points[i]) == seuil]
+        self.qualifies.extend(acquis)
+        self.places_barrage -= len(acquis)
+        if len(egaux) == self.places_barrage:
+            self.finalistes = sorted(self.qualifies + egaux)
+            self.barrage = []
+            self.bilan = 'Les deux finalistes sont qualifiés !'
+        else:
+            self.barrage = sorted(egaux)
+            self.bilan = 'Égalité au barrage : nouveau numéro, nouvelle volée'
+
+    def archiver_resultats(self, joueurs):
+        import json
+        from pathlib import Path
+        from datetime import datetime
+        from uuid import uuid4
+        resultat = {'version': VERSION, 'date': datetime.now().isoformat(),
+                    'mode': 'course' if self.course else 'conquete',
+                    'manches': self.nb_manches, 'finition': FINITIONS[self.finition],
+                    'gagnant': self.gagnant_reel,
+                    'participants': [{'id': i, 'nom': j.name,
+                       'territoires': self.territoires[i], 'points': self.cumul[i],
+                       'flechettes': j.darts_thrown} for i, j in enumerate(joueurs)]}
+        dossier = Path(getattr(self.config, 'root_dir', Path.cwd())) / 'results' / 'Elysee_500'
+        try:
+            dossier.mkdir(parents=True, exist_ok=True)
+            fichier = dossier / (datetime.now().strftime('%Y%m%d_%H%M%S_') + uuid4().hex[:8] + '.json')
+            fichier.write_text(json.dumps(resultat, ensure_ascii=False, indent=2), encoding='utf-8')
+            self.resultat_archive = str(fichier)
+        except OSError as erreur:
+            self.logs.error(f'Élysée 500 : impossible de sauvegarder le résultat : {erreur}')
+
+    def cloturer(self, joueurs_borne, index_borne):
+        ordre_avant = self.ordre_actuel()
+        phase_avant = (bool(self.barrage), bool(self.finalistes))
+        joueurs = self.participants if self.relais else joueurs_borne
+        joueur = self.actif if self.relais else index_borne
+        code = self.fin_volee(joueurs, joueur)
+        if code == 3:
+            self.gagnant_reel = self.winner
+            self.archiver_resultats(joueurs)
+            if self.relais:
+                # Le moteur connaît les sièges : identifier explicitement le gagnant
+                # sur le siège de résultat, tout en conservant le classement réel en JSON.
+                gagnant = self.participants[self.gagnant_reel]
+                siege = joueurs_borne[index_borne]
+                siege.name = gagnant.name
+                siege.score = gagnant.score
+                siege.darts_thrown = gagnant.darts_thrown
+                self.winner = siege.ident
+            return 3
+        if self.relais:
+            ordre = self.ordre_actuel()
+            changement = phase_avant != (bool(self.barrage), bool(self.finalistes))
+            if changement or joueur == ordre_avant[-1]:
                 self.manche += 1
                 self.actif = ordre[0]
-                return 1
-        position = ordre.index(self.actif)
-        if position + 1 == len(ordre):
-            self.manche += 1
-            self.actif = ordre[0]
-        else:
-            self.actif = ordre[position+1]
-        return 1
+            else:
+                self.actif = ordre[ordre.index(joueur) + 1]
+        return code
 
     def post_dart_check(self, hit, players, actual_round, actual_player, player_launch):
         borne, index_borne = players, actual_player
@@ -225,7 +307,7 @@ class Game(cgame.Game):
         elif num.isdigit() and int(num) in self.secteurs:
             gain = {'S':1, 'D':2, 'T':3}.get(ring, 0)
             self.points[actual_player][self.secteurs.index(int(num))] += gain
-            if self.tour <= 3:
+            if not self.barrage and not self.finalistes and self.tour <= self.nb_manches:
                 self.cumul[actual_player] += gain
         players[actual_player].darts_thrown += 1
         code = self.cloturer(borne, index_borne) if player_launch == 3 else 0
@@ -263,24 +345,26 @@ class Game(cgame.Game):
             screen.blit(surf, surf.get_rect(center=(int(x*w), int(y*h))))
 
         label('ÉLYSÉE 500', .5,.085,.115)
-        phase = 'DUEL FINAL' if (not self.course and actual_round >= 4) else f'CONQUÊTE   •   MANCHE {actual_round}/3'
+        phase = 'DUEL FINAL' if (not self.course and bool(self.finalistes)) else ('BARRAGE POUR LA FINALE' if self.barrage else f'CONQUÊTE   •   MANCHE {actual_round}/{self.nb_manches}')
         label("PREMIER À 500 PARRAINAGES" if self.course else phase,.5,.185,.055)
         label(f'{players[actual_player].name}    •    {RemDarts} fléchette(s)',.64,.275,.055)
         for k, (n, couleur) in enumerate(zip([] if self.course or (self.finalistes and self.finition) else self.secteurs, ((65,150,255),(245,245,235),(250,95,100)))):
             x = .40+.225*k
             label(n,x,.42,.16,.27,couleur)
             label(f'{self.points[actual_player][k]} pts',x,.52,.055,.27)
+        if self.barrage:
+            label('3 fléchettes sur ce numéro : simple 1 / double 2 / triple 3', .64, .56, .033, .68)
         if self.course:
             label(f"{self.cumul[actual_player]} / 500", .64,.43,.14)
         if self.finition and (self.course or self.finalistes):
             label('Finition : ' + FINITIONS[self.finition], .64, .53 if self.course else .43, .055)
-        indices = self.finalistes if (not self.course and actual_round >= 4) else sorted(range(len(players)), key=lambda i: (-self.territoires[i], -self.cumul[i], i))
-        page = 0 if (not self.course and actual_round >= 4) else indices.index(actual_player) // 8
+        indices = self.finalistes if (not self.course and bool(self.finalistes)) else sorted(range(len(players)), key=lambda i: (-self.territoires[i], -self.cumul[i], i))
+        page = 0 if (not self.course and bool(self.finalistes)) else indices.index(actual_player) // 8
         indices = list(indices)[page*8:page*8+8]
-        if len(players)>8 and (self.course or actual_round < 4):
+        if len(players)>8 and (self.course or not self.finalistes):
             label(f'Classement {page+1}/{(len(players)+7)//8}',.14,.264,.036,.21)
         for rang,i in enumerate(indices):
-            score = (f'{sum(self.points[i])} pts' if (not self.course and actual_round >= 4) else
+            score = (f'{sum(self.points[i])} pts' if (not self.course and bool(self.finalistes)) else
                      f'{self.territoires[i]} terr.  |  ' + ' / '.join(map(str,self.points[i])))
             if self.course:
                 score = f"{self.cumul[i]} / 500"
@@ -323,3 +407,4 @@ for _method in ('__init__', 'play_intro', 'play_intro_only_video',
                 'pre_dart_check', 'refresh_game_screen', 'post_dart_check',
                 'early_player_button', 'miss_button'):
     setattr(Game, _method, _elysee_diagnostic(getattr(Game, _method)))
+
