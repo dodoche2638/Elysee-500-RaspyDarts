@@ -1,12 +1,14 @@
 # Élysée 500 pour RaspyDarts
 
-Créateur : **dodoche2638**. Version 3.8, conçue pour RaspyDarts 4.5.1.
+Créateur : **dodoche2638**. Version 3.9, conçue pour RaspyDarts 4.5.1.
 
 Jeu de fléchettes pour **2 à 39 participants**, avec 39 personnages, un décor de l’Élysée, une carte et une intro animée de 25 secondes sur La Marseillaise.
 
 ## Télécharger et installer
 
-Télécharger [le paquet de ressources 3.7](Elysee_500_RaspyDarts.zip), puis le décompresser sur le PC. Remplacer ensuite son module par le [fichier Python 3.8](games/fun/Elysee_500.py) de ce dépôt (bouton Raw puis enregistrer sous `Elysee_500.py`). Le ZIP ne contient pas encore ce correctif. Quitter RaspyDarts avant les transferts.
+Télécharger [le paquet complet 3.9](Elysee_500_RaspyDarts.zip). Le ZIP contient le même module 3.9 que le dépôt. Quitter RaspyDarts avant les transferts.
+
+Pour une mise à jour depuis 3.8 : remplacer `games/fun/Elysee_500.py` ; pour les descriptifs et les options clarifiées, sauvegarder puis remplacer `include/cscreen.py` avec le fichier adapté à cette borne fourni dans le ZIP. Les ressources graphiques et l’intro ne changent pas.
 
 - `games/fun/Elysee_500.py` : module du jeu, à placer à côté de Castle.py.
 - `images/logos_menu/Elysee_500.png` : logo du menu Fun.
@@ -54,7 +56,7 @@ Les touches sur un même numéro s’additionnent. **Quand tous les joueurs ont 
 - **« Terr. »** : le nombre de territoires gagnés.
 - **La carte** : les territoires déjà attribués aux manches précédentes, dans la couleur de leur gagnant. Le bleu, blanc et rouge des cibles ne désignent pas les propriétaires.
 
-Il y a **3 territoires à gagner par manche**, donc **9 au maximum sur 3 manches**. Les deux joueurs ayant le plus de territoires vont en finale. À égalité de territoires, les points cumulés départagent ; si cette égalité persiste, l’ordre d’inscription tranche.
+Il y a **3 territoires à gagner par manche**, donc **9, 15 ou 21 au maximum sur 3, 5 ou 7 manches** (5 manches par défaut). Les deux joueurs ayant le plus de territoires vont en finale. À égalité de territoires pour une place en finale, les joueurs concernés disputent un barrage : trois fléchettes chacun sur un même numéro tiré au sort (simple 1, double 2, triple 3). Les places acquises sont conservées. Si nécessaire, les joueurs encore à égalité rejouent sur un nouveau numéro. Les points cumulés et l’ordre d’inscription ne décident pas de l’accès à la finale.
 
 En finale libre, on compare les points sur trois nouveaux numéros. Avec finition imposée, chaque touche conforme vaut un point. Les deux finalistes terminent leurs trois fléchettes. À égalité, nouvelle volée complète, scores de finale remis à zéro.
 
@@ -68,7 +70,8 @@ Avec finition imposée, chaque fléchette qui atteint ou dépasse 500 doit respe
 
 | Option | Fonction |
 |---|---|
-| `premier_a_500` | Activée : Course aux 500. Désactivée : Conquête. |
+| Mode de jeu (`premier_a_500`) | Conquête de territoires ou Course aux 500 parrainages. Les anciens booléens restent reconnus. |
+| Manches (`nb_manches`) | 3, 5 ou 7. 5 par défaut. Utilisée seulement en Conquête. |
 | `effectif` | 0 : joueurs inscrits au menu général. 2 à 39 : participants gérés en relais par le jeu. |
 | `aleatoire` | Distribue les personnages au hasard, sans doublon. |
 | `finition` | 0 Libre ; 1 Triple ; 2 Double numéroté ; 3 Simple bull ; 4 Double bull. |
@@ -83,12 +86,15 @@ Les exceptions du module sont enregistrées dans `logs/Elysee_500_erreur.log` (c
 
 Un affichage « 0 - 0 joueurs » indique une déclaration manquante dans `NbOfPlayersPerGame`. Un échec FileZilla mentionnant « restarting at file position » indique une reprise à désactiver : renvoyer le fichier en choisissant Remplacer.
 
-## Limite du mode relais
+## Résultats en mode relais
 
-Le vrai gagnant est annoncé par le jeu, mais la fin en relais utilise encore le code 2 et ne transmet pas ce gagnant aux statistiques natives. Une adaptation du moteur est nécessaire pour gérer tous les participants réels ; ce point reste ouvert.
+La fin de partie utilise désormais le code 3 : le siège de résultat est identifié par le vrai nom du gagnant et son score, pour l’annonce native de victoire. Les statistiques génériques de RaspyDarts restent celles des sièges relais : elles ne constituent pas le classement de tous les participants.
+
+Le résultat réel complet est sauvegardé dans `results/Elysee_500/*.json` : nom, points, territoires et fléchettes de chaque participant, avec l’identifiant du gagnant. Une erreur d’écriture est signalée dans les logs sans bloquer la fin de partie.
 
 ## Validation
 
-La version précédente démarrait sur la borne après correction des transferts. Le correctif DMD 3.8 reste à tester sur la borne ; aucun test exécuté pour cette modification. Tests locaux avec la classe de base fournie : initialisation, règles de fin de tour et égalités. Compatibilité à vérifier pour les autres versions de RaspyDarts.
+Le DMD 3.8 a été testé et validé sur la borne par son utilisateur ; son fonctionnement est conservé. La version 3.9 a été vérifiée localement avec le cgame fourni, joueurs et matériel simulés : 3/5/7 manches, barrages successifs pour une ou deux places, finale à égalité, course à 500, relais et direct, code 3 et archive complète. Rendu Pygame 1280 × 720 vérifié. Le test physique de la 3.9 reste nécessaire.
 
 Ce dépôt contient un jeu additionnel ; RaspyDarts doit être installé séparément. Les droits des composants et ressources tiers restent ceux de leurs titulaires respectifs.
+
